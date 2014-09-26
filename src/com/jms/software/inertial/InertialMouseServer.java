@@ -4,6 +4,7 @@ public class InertialMouseServer {
 
 	public static void main(String[] args) {
 		final Server serv =new Server(8888, 20);
+		serv.connect();
 		serv.startServer();
 		String data;
 		Thread t= new Thread(new Runnable(){
@@ -12,7 +13,8 @@ public class InertialMouseServer {
 			public void run() {
 				
 				while(true){
-					System.out.println("Receivd: "+serv.popElement());
+					if(serv.isConnected())
+						System.out.println("Receivd: "+serv.popElement());
 					try {
 						Thread.sleep(10);
 					} catch (InterruptedException e) {

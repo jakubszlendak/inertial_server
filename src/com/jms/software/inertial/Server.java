@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingDeque;
 
 public class Server{
 	
@@ -21,13 +22,13 @@ public class Server{
 	private boolean isConnected;
 	private boolean isRunning; 
 	
-	private LinkedList<String> mReceivedData;
+	private LinkedBlockingDeque<String> mReceivedData;
 	
 	private String mDataToSend;
 	private int mPortNumber, mPeriod;
 	
 	public Server(int portNumber, int period) {
-		this.mReceivedData = (LinkedList)Collections.synchronizedList(new LinkedList<String>());
+		this.mReceivedData = new LinkedBlockingDeque<String>();
 		this.mPortNumber = portNumber;
 		this.mPeriod = period;
 		this.mDataToSend=null;
@@ -44,7 +45,7 @@ public class Server{
 			System.out.println("Waiting for connection...");
 			mSocket = mServerSocket.accept();
 			System.out.println("Connection accepted.");
-			out = new PrintWriter(mSocket.getOutputStream());
+			out = new PrintWriter(mSocket.getOutputStream(),true);
 			in = new BufferedReader(new InputStreamReader(mSocket.getInputStream()));
 			System.out.println("I/O streams setted up.");
 			isConnected=true;
@@ -66,37 +67,39 @@ public class Server{
 				if(!isConnected){
 					connect();
 				}
-				else{
-					isRunning=true;
-					while(isRunning){
-						String data=null;
-						try {
-							data=in.readLine();
-						} catch (IOException e) {
-							System.out.println("Error occured when reading from socket stream: "+e.getMessage());
-						}
-						if(data!=null){
-							if(data==DISCONNECT_FLAG)
-								isRunning=false;
-							mReceivedData.addFirst(data);
-						}
-						
-						synchronized(mDataToSend){
-							if(mDataToSend!=null){
-								out.println(mDataToSend);
-								mDataToSend=null;
-							}
-						}
-						try {
-							Thread.sleep(mPeriod);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						
-					}
-					disconnect();
-				}
 				
+				
+				isRunning=true;
+				while(isRunning){
+					String data=null;
+					try {
+						data=in.readLine();
+					} catch (IOException e) {
+						System.out.println("Error occured when reading from socket stream: "+e.getMessage());
+						e.printStackTrace();
+					}
+					if(data!=null){
+						if(data==DISCONNECT_FLAG)
+							isRunning=false;
+					mReceivedData.addFirst(data);
+					}
+					
+					/*synchronized(mDataToSend){
+						if(mDataToSend!=null){
+							out.println(mDataToSend);
+							mDataToSend=null;
+						}
+					}*/
+					try {
+						Thread.sleep(mPeriod);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+						
+				
+				
+				}
+				disconnect();
 			}
 			
 		});
@@ -107,6 +110,7 @@ public class Server{
 		
 	}
 	private void disconnect() {
+		System.out.println("Disconnecting...");
 		try{
 			mServerSocket.close();
 			mSocket.close();
@@ -116,6 +120,7 @@ public class Server{
 			System.out.println("Error occured when closing connection: "+e1.getMessage());
 		}
 		isConnected=false;		
+		System.out.println("Disconnected.");
 	}
 	
 	/**
@@ -134,17 +139,24 @@ public class Server{
 	
 	public String popElement(){
 		if(!mReceivedData.isEmpty())
-			return mReceivedData.pop();
+			return mReceivedData.pollLast();
 		else
 			return null;
 	}
 	
-	public LinkedList<String> getInputBuffer(){
+	public LinkedBlockingDeque<String> getInputBuffer(){
 		return mReceivedData;
 	}
 	
 	public synchronized void sendData(String data){
 		mDataToSend = data;
+	}
+	
+	public boolean isConnected(){
+		return isConnected;
+	}
+	public boolean isRunning(){
+		return isRunning;
 	}
 	
 
