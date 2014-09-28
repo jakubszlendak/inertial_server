@@ -74,6 +74,7 @@ public class Server{
 					String data=null;
 					try {
 						data=in.readLine();
+						System.out.println("Server received: "+data);
 					} catch (IOException e) {
 						System.out.println("Error occured when reading from socket stream: "+e.getMessage());
 						e.printStackTrace();
@@ -137,11 +138,18 @@ public class Server{
 		
 	}
 	
-	public String popElement(){
-		if(!mReceivedData.isEmpty())
-			return mReceivedData.pollLast();
-		else
-			return null;
+	public String takeElement(){
+//		if(!mReceivedData.isEmpty())
+//			return mReceivedData.pollLast();
+//		else
+//			return null;
+		try {
+			return mReceivedData.takeLast();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	public LinkedBlockingDeque<String> getInputBuffer(){
