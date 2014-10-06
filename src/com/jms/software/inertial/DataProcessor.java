@@ -1,31 +1,26 @@
 package com.jms.software.inertial;
 
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.lang.Math;
 
 public class DataProcessor {
-	private DataVect mVelocity;
-	private DataVect mPosition;
 	
-	private LinkedBlockingDeque<DataVect> mVelocityBuffer;
-	private LinkedBlockingDeque<DataVect> mPositionBuffer;
 	
 	private Server mServer;
 	private Thread mProcessingThread;
 	private boolean isRunning = false;
-	
-	private float prevTimeV = 0.0f;
-	private float prevTimeX = 0.0f;
-	
-	public DataProcessor(Server server){
-		mVelocity = new DataVect(0,0,0,0);
-		mPosition = new DataVect(0,0,0,0);
-		this.mServer = server;
-		mVelocityBuffer = new LinkedBlockingDeque<DataVect>();
-		mPositionBuffer = new LinkedBlockingDeque<DataVect>();
+	private DataVect acceleration, rate;
+	private double thetaAcc;
+	private double thetaFiltered;
 		
+	public DataProcessor(Server server){
+		this.mServer = server;
+		this.acceleration = new DataVect(0, 0, 0, 0);
+		this.rate = new DataVect(0, 0, 00, 0);
 	}
 	
 	public void startProcessing(){
@@ -41,52 +36,13 @@ public class DataProcessor {
 				public void run() {
 					if(!mServer.isRunning())
 						mServer.startServer();
-					
-					/*TODO shit content*/
-					FileWriter fw=null;
-					try {
-						fw = new FileWriter("out.txt");
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					BufferedWriter out = new BufferedWriter(fw);
-					
-					/*end of shit*/
 					isRunning=true;
 					while(isRunning){
 						String data = mServer.takeElement();
-
-						//System.out.println("Processor received from server: "+data);
 						if(data!=null){
-							data = data.replaceAll(",", ".");
-							String[] split = data.split(" ");
-							if(split.length==4){
-								float[] dataNumeric = new float[4];
-								for(int i=0; i<split.length; i++){
-									dataNumeric[i]=Float.parseFloat(split[i]);
-								}
+							process(data);							
 								
-								DataVect vect = new DataVect(dataNumeric[0], dataNumeric[1], dataNumeric[2], dataNumeric[3]);
-								if(prevTimeV==0.0)
-									prevTimeV=vect.getTime();
-								if(prevTimeX==0.0)
-									prevTimeX=vect.getTime();
-								integrate(vect, mVelocity, prevTimeV);
-								prevTimeV=vect.getTime();
-								integrate(mVelocity, mPosition, prevTimeX);
-								prevTimeX=vect.getTime();
-								mVelocityBuffer.addFirst(mVelocity);
-								mPositionBuffer.addFirst(mPosition);
-//								try {
-									System.out.println(String.format("%3.3f %3.3f %3.3f, %3.3f", vect.getTime(), vect.getX(), mVelocity.getX(), mPosition.getX()));
-//								} catch (IOException e) {
-									// TODO Auto-generated catch block
-//									e.printStackTrace();
-//								}
-								
-								
-							}
+						
 						}
 					}
 					
@@ -97,31 +53,24 @@ public class DataProcessor {
 		}
 		
 	}
-	private void integrate(DataVect vect, DataVect result, float prevTime){
-		float deltaT = vect.getTime() - prevTime;
-		System.out.println("dT= "+deltaT);
-		float x = result.getX();
-		float y = result.getY();
-		float z = result.getZ();
-		result.setX(x+(vect.getX()*deltaT));
-		result.setY(y+(vect.getY()*deltaT));
-		result.setZ(z+(vect.getZ()*deltaT));
-		result.setTime(vect.getTime());
-		
-		
-		
-	}
-	public float getResultV(){
-		//TODO remove this shit
-		return mVelocityBuffer.pollLast().getX();
-	}
-	public float getResultX(){
-		//TODO remove this shit
-		return mPositionBuffer.pollLast().getX();
-	}
 	
-	public float getResultTime(){
-		return mPositionBuffer.peekLast().getTime();
+	private void process(String data){
+		//parse
+		String[] dataArray = new String[7];
+		dataArray=data.split(" ");
+		if(dataArray.length!=7)
+			return;
+		acceleration.setX(Float.parseFloat(dataArray[0]));
+		acceleration.setY(Float.parseFloat(dataArray[1]));
+		acceleration.setZ(Float.parseFloat(dataArray[2]));
+		rate.setX(Float.parseFloat(dataArray[4]));
+		rate.setX(Float.parseFloat(dataArray[5]));
+		rate.setX(Float.parseFloat(dataArray[6]));
+		//prepare measure vector
+		thetaAcc = -1 * Math.atan2(acceleration.getX(),acceleration.getZ()); yooo sprawdz czy siê zgadza znak
+		
+		
+		
 	}
 	
 	private class DataVect{
