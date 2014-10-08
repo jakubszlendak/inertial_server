@@ -22,6 +22,7 @@ public class KalmanFilter {
 	
 	private int rankX;
 	private int rankZ;
+	private int rankU;
 	/**
 	 * 
 	 * @param rankX Rank of state vector X
@@ -33,7 +34,7 @@ public class KalmanFilter {
 	 * @param R
 	 * @throws Exception 
 	 */
-	public KalmanFilter(int rankX, int rankZ, double[][] A, double[][] B, double[][] H, double[][] Q, double[][] R ) throws Exception{
+	public KalmanFilter(int rankX, int rankZ, int rankU, double[][] A, double[][] B, double[][] H, double[][] Q, double[][] R ) throws Exception{
 		if(A.length!=rankX)
 			throw new Exception("Invalid transition matrix!");
 		if(H[0].length!=rankZ)
@@ -42,13 +43,13 @@ public class KalmanFilter {
 			throw new Exception("Q and R matrices must be square and of proper rank!");
 		
 		this.A = new Matrix(A);
-		if(B!=null)
-			this.B = new Matrix(B);
+		this.B = new Matrix(B);
 		this.H = new Matrix(H);
 		this.Q = new Matrix(Q);
 		this.R = new Matrix(R);
 		this.rankX = rankX;
 		this.rankZ = rankZ;
+		this.rankU = rankU;
 		x = new Matrix(rankX, 1, 0.0);
 		z = new Matrix(rankZ, 1, 0.0);
 		P = new Matrix(rankX, rankX, 0.0);
@@ -58,7 +59,7 @@ public class KalmanFilter {
 	
 	public double[][] kalmanIteration(double[][] Z, double [][] u){
 		//prediction
-		x = (A.times(x)).plus(B.times(new Matrix(u)));
+		x = (A.times(x));
 		P = (A.times(P)).times(A.transpose()).plus(Q);
 		//correction
 		K = new Matrix(rankX,1);
